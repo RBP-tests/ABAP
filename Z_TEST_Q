@@ -1,0 +1,32 @@
+*&---------------------------------------------------------------------*
+*& Report Z_TEST_Q
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT Z_TEST_Q.
+
+TABLES vbak.
+
+DATA: lt_vbak TYPE TABLE OF vbak,
+      ls_vbak TYPE vbak.
+
+SELECT * from vbak
+  INTO TABLE lt_vbak
+  UP TO 50 ROWS.
+
+IF sy-subrc <> 0.
+WRITE: 'No entries found'.
+EXIT.
+ENDIF.
+
+WRITE: / 'Sales Order', 20 'Document Type', 40 'Sales Org', 60 'Dist. Chan.', 80 'Division'.
+WRITE: / '-----------', 20 '-------------', 40 '---------', 60 '-----------', 80 '--------'.
+
+LOOP at lt_vbak INTO ls_vbak.
+WRITE: /   ls_vbak-vbeln,
+        20 ls_vbak-auart,
+        40 ls_vbak-vkorg,
+        60 ls_vbak-vtweg,
+        80 ls_vbak-spart.
+
+ENDLOOP.
