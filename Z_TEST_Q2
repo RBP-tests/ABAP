@@ -1,0 +1,168 @@
+*&---------------------------------------------------------------------*
+*& Report Z_TEST_Q2
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT Z_TEST_Q2.
+
+TABLES: vbak.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
+PARAMETERS: x_low TYPE vbak-erdat,
+            x_high TYPE vbak-erdat.
+SELECTION-SCREEN END OF BLOCK b1.
+
+DATA: xt_vbak TYPE TABLE OF vbak,
+      xs_vbak TYPE vbak,
+      xt_fieldcat TYPE slis_t_fieldcat_alv,
+      xs_fieldcat TYPE slis_fieldcat_alv,
+      txt_title TYPE string,
+      xt_vbak_top TYPE TABLE OF vbak,
+
+INITIALIZATION.
+txt_title = 'Input Creation Date'.
+
+START-OF-SELECTION.
+
+"Scenario 1 - Date Range Provided
+
+IF x_low is NOT INITIAL AND x_high IS NOT INITIAL.
+
+SELECT * FROM vbak
+  INTO TABLE xt_vbak
+  WHERE erdat BETWEEN x_low AND x_high.
+
+SORT xt_vbak BY erdat DESCENDING.
+
+PERFORM get_result
+  USING 50
+  CHANGING xt_vbak_top xt_vbak.
+
+"Scenario 2 - Specific Date Provided (Low)
+
+ELSEIF x_low is NOT INITIAL AND x_high is INITIAL.
+
+SELECT * FROM vbak
+  INTO TABLE xt_vbak
+  WHERE erdat = x_low.
+
+SORT xt_vbak BY erdat DESCENDING.
+
+PERFORM get_result
+  USING 50
+  CHANGING xt_vbak_top xt_vbak.
+
+"Scenario 3 - Specific Date Provided (High)
+
+ELSEIF x_low is INITIAL AND x_high is NOT INITIAL.
+
+SELECT * FROM vbak
+  INTO TABLE xt_vbak
+  WHERE erdat <= x_high.
+
+SORT xt_vbak BY erdat DESCENDING.
+
+PERFORM get_result
+  USING 50
+  CHANGING xt_vbak_top xt_vbak.
+
+"Scenario 4 - No Dates Provided
+
+ELSE.
+
+SELECT * FROM vbak
+  INTO TABLE xt_vbak.
+
+SORT xt_vbak BY erdat DESCENDING.
+
+PERFORM get_result
+  USING 50
+  CHANGING xt_vbak_top xt_vbak.
+
+ENDIF.
+
+IF xt_vbak is INITIAL.
+  Message 'No Sales Order found.' TYPE 'I'.
+  EXIT.
+ENDIF.
+
+"ALV Section
+
+CLEAR xs_fieldcat.
+
+xs_fieldcat-fieldname = 'VBELN'.
+xs_fieldcat-seltext_m = 'Sales Order'.
+APPEND xs_fieldcat to xt_fieldcat.
+
+CLEAR xs_fieldcat.
+
+xs_fieldcat-fieldname = 'AUART'.
+xs_fieldcat-seltext_m = 'Doc. Type'.
+APPEND xs_fieldcat to xt_fieldcat.
+
+CLEAR xs_fieldcat.
+
+xs_fieldcat-fieldname = 'VKORG'.
+xs_fieldcat-seltext_m = 'Sales Org.'.
+APPEND xs_fieldcat to xt_fieldcat.
+
+CLEAR xs_fieldcat.
+
+xs_fieldcat-fieldname = 'VTWEG'.
+xs_fieldcat-seltext_m = 'Dist. Channel'.
+APPEND xs_fieldcat to xt_fieldcat.
+
+CLEAR xs_fieldcat.
+
+xs_fieldcat-fieldname = 'SPART'.
+xs_fieldcat-seltext_m = 'Division'.
+APPEND xs_fieldcat to xt_fieldcat.
+
+CLEAR xs_fieldcat.
+
+xs_fieldcat-fieldname = 'ERDAT'.
+xs_fieldcat-seltext_m = 'Creation Date'.
+APPEND xs_fieldcat to xt_fieldcat.
+
+"Display
+CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+  EXPORTING
+    i_callback_program = sy-repid
+    it_fieldcat        = xt_fieldcat
+  TABLES
+    t_outtab           = xt_vbak_top.
+
+
+*---------------------------------------------------------------------*
+*       FORM get_result                                               *
+*---------------------------------------------------------------------*
+FORM get_result
+  USING  yv_limit TYPE i
+  CHANGING yt_top TYPE STANDARD TABLE
+           yt_full TYPE STANDARD TABLE.
+
+FIELD-SYMBOLS: <ws_line> TYPE ANY,
+               <wt_full> TYPE STANDARD TABLE,
+               <wt_top>  TYPE STANDARD TABLE.
+
+ASSIGN yt_full TO <wt_full>.
+ASSIGN yt_top TO <wt_top>.
+
+IF <wt_top> IS ASSIGNED.
+CLEAR <wt_top>.
+ENDIF.
+
+DATA: yv_index TYPE i VALUE 0.
+
+LOOP AT <wt_full> ASSIGNING <ws_line>.
+  ADD 1 TO yv_index.
+  IF yv_index > yv_limit.
+    EXIT.
+  ENDIF.
+  APPEND <ws_line> TO <wt_top>.
+ENDLOOP.
+
+ENDFORM.
+*---------------------------------------------------------------------*
+*       ENDFORM get_result                                            *
+*---------------------------------------------------------------------*
